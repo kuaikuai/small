@@ -1,7 +1,10 @@
+# a very simple WAF
+# usage: nohup perl deny.pl &
+
 $|=1;
 
-$keyword = $ARGV[0];
-
+$keyword = 'UNION|union|NULL|null|webscan|information_schema|CHR\(|chr\(|char\(';
+$white_list = '192.168.255|219.147.31.2';
 print "deny $keyword\n";
 
 %deny=();
@@ -12,7 +15,7 @@ sub remove {
     print "remove $ip\n";
     my @str = `iptables -L --line-number`;
     for(@str) {
-        # (/1    DROP       all  --  10.0.64.18 
+        # (/1    DROP       all  --  10.0.64.18
         if(/(\d+)\s+DROP\s+all\s+--\s+$ip/){
             system "iptables -D INPUT $1";
         }
@@ -36,8 +39,9 @@ sub flush {
     }
     for my $ip (@done) {
         delete $deny{$ip};
+        delete $memo{$ip};
     }
-    %memo = ();
+
 }
 
 
@@ -52,10 +56,7 @@ while($line = <FILE>) {
     if ($ip and $line=~ /$keyword/) {
         print "catch you $ip\n";
         $memo{$ip}++;
-        if( $ip !~ /192.168.255/ &&
-         $ip !~ /192.168.255/ &&
-         $ip !~ /219.147.31.2/ && 
-         $memo{$ip} >= 3 ) {
+        if( $ip !~ /$white_list/ && $memo{$ip} >= 3 ) {
             unless (exists $deny{$ip}) {
                 system "iptables -A INPUT -s $ip/32  -j DROP";
                 $deny{$ip} = time();
