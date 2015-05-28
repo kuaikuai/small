@@ -1,14 +1,18 @@
+#!/usr/bin/perl
+
 # a very simple WAF
 # usage: nohup perl deny.pl &
 
 $|=1;
 
-$keyword = 'UNION|union|NULL|null|webscan|information_schema|CHR\(|chr\(|char\(';
+$keyword = 'union|null|webscan|information_schema|chr\(|char\(|concat\(|\bselect\b|count\(';
 $white_list = '192.168.255|219.147.31.2';
 print "deny $keyword\n";
 
 %deny=();
 %memo=();
+
+system "iptables -F";
 
 sub remove {
     my $ip = shift;
@@ -53,7 +57,7 @@ while($line = <FILE>) {
     if ($line =~ /(\d+\.\d+\.\d+\.\d+)\.\d{3,} >/) {
         $ip = $1;
     }
-    if ($ip and $line=~ /$keyword/) {
+    if ($ip and $line=~ /$keyword/i) {
         print "catch you $ip\n";
         $memo{$ip}++;
         if( $ip !~ /$white_list/ && $memo{$ip} >= 3 ) {
