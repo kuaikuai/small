@@ -5,7 +5,8 @@
 
 $|=1;
 
-$keyword = 'union|null|webscan|information_schema|chr\(|char\(|concat\(|\bselect\b|count\(';
+# base64_decode for php
+$keyword = 'union|null|webscan|information_schema|chr\(|char\(|concat\(|\bselect\b|count\(|base64_decode|eval\(';
 $white_list = '192.168.255|219.147.31.2';
 print "deny $keyword\n";
 
@@ -26,17 +27,20 @@ sub remove {
     }
 }
 $last = time();
+$count = 0;
 sub flush {
     #print "flush\n";
     if ( time() < $last + 60) {
         return;
     }
+    $count ++;
     $last = time();
     my @done = ();
     for my $ip (keys %deny) {
         #print "ip:$ip\n";
         my $now = time();
-        if ($now > $deny{$ip} + 1200) {
+        # deny one ip in 30 min
+        if ($now > $deny{$ip} + 1800) {
             remove $ip;
             push @done, $ip;
         }
@@ -45,7 +49,10 @@ sub flush {
         delete $deny{$ip};
         delete $memo{$ip};
     }
-
+    # empty %memo every 120 min
+    if ($count % 120 == 0) {
+        %memo = ()
+    }
 }
 
 

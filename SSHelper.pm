@@ -2,6 +2,13 @@
 package SSHelper;
 use Expect;
 use warnings;
+
+# used for auto login ssh (scp) and exec some comands
+# conf file(pass.txt):
+# 10.10.10.10 password
+# 1.1.1.1 password
+# SSHelper::batch_run("pass.txt", "ls -la")
+
 #$Expect::Log_Stdout = 1;
 #$Expect::Debug = 1;
 $ENV{TERM} = "vt100";
