@@ -2,13 +2,6 @@
 package SSHelper;
 use Expect;
 use warnings;
-
-# used for auto login ssh (scp) and exec some comands
-# conf file(pass.txt):
-# 10.10.10.10 password
-# 1.1.1.1 password
-# SSHelper::batch_run("pass.txt", "ls -la")
-
 #$Expect::Log_Stdout = 1;
 #$Expect::Debug = 1;
 $ENV{TERM} = "vt100";
@@ -79,8 +72,9 @@ sub copy_file {
     print "copy $file to $ip:$dst_dir\n";
     my $exp = Expect->new;
     $exp = Expect->spawn("scp $file $usr" . "@" . "$ip:$dst_dir\n");
+    my $r;
     if ($pass) {
-        my $r = $exp->expect(30,
+        $r = $exp->expect(30,
                  [
                   qr/password:/i,
                   sub {
@@ -102,7 +96,7 @@ sub copy_file {
      }
 
     $exp->soft_close();
-    unless ($r) {
+    if ($pass && !$r) {
         print "copy file $ip failed\n";
         return -1;
     }
