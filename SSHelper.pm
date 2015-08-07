@@ -5,6 +5,8 @@ use warnings;
 #$Expect::Log_Stdout = 1;
 #$Expect::Debug = 1;
 $ENV{TERM} = "vt100";
+$Expect::Multiline_Matching=1;
+$Expect::IgnoreEintr=1;
 
 sub load_conf {
     my ($file_name) = @_;
@@ -71,10 +73,20 @@ sub copy_file {
     my ($ip, $usr, $pass, $file, $dst_dir) = @_;
     print "copy $file to $ip:$dst_dir\n";
     my $exp = Expect->new;
-    $exp = Expect->spawn("scp $file $usr" . "@" . "$ip:$dst_dir\n");
+    $exp->match_max(4096);
+    $exp = Expect->spawn("scp  -o StrictHostKeyChecking=no  $file $usr" . "@" . "$ip:$dst_dir\n");
     my $r;
     if ($pass) {
         $r = $exp->expect(30,
+                 [
+                  'Are you sure you want to continue connecting (yes/no)?',
+                  sub {
+                      my $self = shift;
+                      $self->send("yes\n");
+                      sleep(1);
+                      exp_continue;
+                  }
+                 ],
                  [
                   qr/password:/i,
                   sub {
@@ -83,15 +95,6 @@ sub copy_file {
                       sleep(1);
                   }
                  ],
-                 [
-                  '(yes/no)? ',
-                  sub {
-                      my $self = shift;
-                      $self->send("yes\n");
-                      sleep(1);
-                      exp_continue;
-                  }
-                 ]
         );
      }
 
