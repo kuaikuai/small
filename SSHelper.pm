@@ -28,13 +28,14 @@ sub run_cmd {
     my ($ip, $usr, $pass, $cmd) = @_;
     my $exp = Expect->new;
     $exp->log_stdout( 1 );
-    $exp = Expect->spawn("ssh -l $usr $ip");
+    $exp = Expect->spawn("ssh -o StrictHostKeyChecking=no  -l $usr $ip");
     $exp->log_file("output.log");
     $exp->expect(30,
                  [
                   qr/password: /i,
                   sub {
                       my $self = shift ;
+                      unless($pass) { print "no password\n";return -1 };
                       $self->send("$pass\n");
                       sleep(1);
                       exp_continue;   
@@ -49,9 +50,9 @@ sub run_cmd {
                       exp_continue;
                   }
                  ],
-                 [ qr/[\]\$\>\#]/,
+                 [ qr/[\]$>#] /,
                    sub {
-                       print "ok";
+                       #print "ok";
                    }
                  ]
         );
@@ -126,18 +127,35 @@ sub batch {
       print "load conf error\n";
       return -1;
    }
-   return grep { $f->($_, $hosts->{$_}) == 0 } keys %$hosts;
+   my @ok = grep { $f->($_, $hosts->{$_}) == 0 } keys %$hosts;
+   my %names = %$hosts;
+   for my $o (@ok) {
+      delete $names{$o};
+   }
+   my @failed = keys %names;
+   return (\@ok, \@failed);
 }
 
 sub batch_run {
   my ($conf_name, $cmd, $src, $dst) = @_;
-  @ok = batch( $conf_name, sub { return SSHelper::run(ip=>$_[0],
+  my ($ok, $failed) = batch( $conf_name, sub { return SSHelper::run(ip=>$_[0],
                                                     user=>"root",
                                                     password=>$_[1],
                                                     src=>$src,
                                                     dst=>$dst,
                                                     command=>$cmd); } );
-  print @ok;
+  print @$ok;
+}
+
+sub start {
+  my ($conf_name, $cmd, $src, $dst) = @_;
+  my ($ok, $failed) = batch( $conf_name, sub { return SSHelper::run(ip=>$_[0],
+                                                    user=>"root",
+                                                    password=>$_[1],
+                                                    src=>$src,
+                                                    dst=>$dst,
+                                                    command=>$cmd); } );
+  return ($ok, $failed);
 }
 
 1;
