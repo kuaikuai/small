@@ -1,0 +1,62 @@
+#!/usr/bin/perl
+use SSHelper;
+use Getopt::Long;
+
+sub get_cmds;
+
+GetOptions('hosts=s' => \$host_file,
+           'cmd=s' => \$cmd,
+           'src=s' => \$src,
+           'dst=s' => \$dst,
+           'cmds=s' => \$cmd_file,
+           );
+
+unless ($host_file) {
+  print "runssh.pl --hosts host \n";
+  exit -1;
+}
+
+if($cmd_file) {
+  
+   my $hosts = SSHelper::load_conf $host_file;
+   my $cmds = get_cmds $cmd_file;
+   for my $host (keys %$cmds) {
+      my $rc = SSHelper::run(ip=>$host,
+                    user=>"root",
+                    password=>$hosts->{$host},
+                    command=>$cmds->{$host} );
+      if ($rc != 0 ) {
+         push @$failed, $host;
+      }
+      else {
+         push @$ok, $host;
+      }
+   }
+}
+else {
+  ($ok, $failed) = SSHelper::start($host_file, $cmd, $src, $dst);
+}
+
+if (@$failed) {
+  print "####"x3 . " failed " . "####"x3 . "\n";
+  map { print "$_\n" } @$failed;
+}
+else {
+  print "####"x3 . " all OK " . "####"x3 . "\n";
+}
+
+
+
+sub get_cmds {
+    my ($file_name) = @_;
+    my %hash = ();
+    open FILE, "< $file_name" or die "cannot open $file_name";
+    while (<FILE>) {
+        if (/(\S+)\s+(.+)/) {
+            my ($host, $cmd) = ($1, $2);
+            chomp $cmd;
+            $hash{$host} = $cmd;
+        }
+    }
+    return \%hash;
+}

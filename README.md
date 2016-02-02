@@ -8,10 +8,12 @@
 批量执行：
 runssh用法：
 ./runssh --hosts host.txt --cmd "ls /root"
+
 ./runssh --hsots host.txt --src "test.cpp" --dst "/root" --cmd "gcc test.cpp -o test"
  
 host.txt内容例子:
 127.0.0.1 pass
+
 10.18.20.1 12345
  
 差异批量执行：
